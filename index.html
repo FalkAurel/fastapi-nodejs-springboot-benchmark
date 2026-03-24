@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Performance Benchmark: FastAPI vs Node.js vs Spring Boot</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3352;
+      --accent: #6366f1;
+      --accent2: #818cf8;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --red: #ef4444;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --python: #3b82f6;
+      --node: #84cc16;
+      --java: #f97316;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 60%, #1e1b4b 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 60px 24px 48px;
+      text-align: center;
+    }
+
+    header .badge {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 999px;
+      margin-bottom: 20px;
+    }
+
+    header h1 {
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, #c7d2fe, #a5b4fc, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 600px;
+      margin: 14px auto 0;
+    }
+
+    /* ── Layout ── */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    section { margin-bottom: 64px; }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent2);
+      margin-bottom: 24px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+
+    p { color: var(--muted); margin-bottom: 12px; }
+
+    /* ── Cards ── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+      transform: translateY(-3px);
+    }
+
+    .card .icon {
+      font-size: 2rem;
+      margin-bottom: 12px;
+    }
+
+    .card.python { border-top: 3px solid var(--python); }
+    .card.node   { border-top: 3px solid var(--node); }
+    .card.java   { border-top: 3px solid var(--java); }
+
+    .tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+
+    .tag.python { background: rgba(59,130,246,0.15); color: var(--python); }
+    .tag.node   { background: rgba(132,204,22,0.15);  color: var(--node); }
+    .tag.java   { background: rgba(249,115,22,0.15);  color: var(--java); }
+
+    /* ── Metric Table ── */
+    .metric-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .metric-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: var(--surface2);
+      color: var(--accent2);
+      font-weight: 600;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .metric-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .metric-table tr:last-child td { border-bottom: none; }
+
+    /* ── Architecture Diagram ── */
+    .arch {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .arch-col {
+      flex: 1;
+      min-width: 160px;
+      padding: 20px 16px;
+      border-right: 1px solid var(--border);
+    }
+
+    .arch-col:last-child { border-right: none; }
+
+    .arch-col h4 {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent2);
+      margin-bottom: 12px;
+    }
+
+    .arch-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+      color: var(--text);
+    }
+
+    .arch-item small { display: block; color: var(--muted); font-size: 0.72rem; margin-top: 2px; }
+
+    /* ── Flow Diagram ── */
+    .flow {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+    }
+
+    .flow-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .flow-box.k6      { border-color: #ec4899; color: #ec4899; }
+    .flow-box.service { border-color: var(--accent); color: var(--accent2); }
+    .flow-box.db      { border-color: var(--yellow); color: var(--yellow); }
+    .flow-box.influx  { border-color: #22d3ee; color: #22d3ee; }
+    .flow-box.grafana { border-color: var(--green); color: var(--green); }
+
+    .arrow {
+      color: var(--muted);
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    /* ── Code block ── */
+    pre {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      color: #7dd3fc;
+      line-height: 1.6;
+    }
+
+    code { font-family: 'Fira Code', 'Cascadia Code', monospace; }
+
+    /* ── CTA Grafana Button ── */
+    .grafana-cta {
+      background: linear-gradient(135deg, #1a1d27, #0f172a);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 48px 32px;
+      text-align: center;
+    }
+
+    .grafana-cta h2 {
+      border: none;
+      color: var(--text);
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+    }
+
+    .grafana-cta p { font-size: 1rem; margin-bottom: 32px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 32px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .btn:hover { opacity: 0.88; transform: translateY(-2px); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #f97316, #fb923c);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: center;
+    }
+
+    /* ── Status Pills ── */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin: 3px;
+    }
+
+    .pill.green  { background: rgba(34,197,94,0.12);  color: var(--green); }
+    .pill.yellow { background: rgba(234,179,8,0.12);  color: var(--yellow); }
+    .pill.red    { background: rgba(239,68,68,0.12);  color: var(--red); }
+    .pill::before { content: '●'; font-size: 0.6rem; }
+
+    /* ── Port list ── */
+    .port-list {
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .port-list li {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 0.85rem;
+    }
+
+    .port-list li strong { color: var(--accent2); }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .arch-col { min-width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     HEADER
+════════════════════════════════════════════ -->
+<header>
+  <div class="badge">DHBW Systemanalyse &mdash; Semester 2</div>
+  <h1>Performance Benchmark</h1>
+  <p>FastAPI &nbsp;vs&nbsp; Node.js / Express &nbsp;vs&nbsp; Spring Boot<br>
+     Vergleich von Antwortzeit und Ressourcenverbrauch unter Last</p>
+</header>
+
+<!-- ═══════════════════════════════════════════
+     MAIN
+════════════════════════════════════════════ -->
+<main>
+
+  <!-- ── Ziel ─────────────────────────────── -->
+  <section>
+    <h2>Ziel des Benchmarks</h2>
+    <p>
+      Dieser Benchmark vergleicht drei populäre Web-Frameworks anhand identischer
+      Aufgaben: eine Datenbank-Abfrage mit Aggregation, Joins und Subqueries wird
+      unter Lastbedingungen (50 gleichzeitige virtuelle Nutzer) ausgeführt.
+      Da alle Implementierungen dieselbe Business-Logik nutzen, misst der Test
+      ausschließlich die Framework- und Laufzeit-Effizienz.
+    </p>
+    <p>Gemessene Metriken: <strong>Antwortzeit (ms)</strong> &nbsp;&amp;&nbsp; <strong>RAM-Verbrauch (MB)</strong></p>
+  </section>
+
+  <!-- ── Frameworks ────────────────────────── -->
+  <section>
+    <h2>Verglichene Frameworks</h2>
+    <div class="card-grid">
+
+      <div class="card python">
+        <div class="icon">🐍</div>
+        <span class="tag python">Python 3.12</span>
+        <h3>FastAPI</h3>
+        <p>Modernes, asynchrones Python-Framework mit Uvicorn ASGI-Server.
+           Optimiert für hohen Durchsatz durch <code>async/await</code>-Unterstützung.</p>
+        <table class="metric-table" style="margin-top:12px">
+          <tr><td>Port</td><td>:8001</td></tr>
+          <tr><td>Version</td><td>0.110.0</td></tr>
+          <tr><td>DB-Pool</td><td>min 2 / max 10</td></tr>
+        </table>
+      </div>
+
+      <div class="card node">
+        <div class="icon">⚡</div>
+        <span class="tag node">JavaScript / Node 20</span>
+        <h3>Express.js</h3>
+        <p>Event-Loop-basiertes Framework. Minimaler Overhead durch
+           nicht-blockierende I/O und schlanke Middleware-Architektur.</p>
+        <table class="metric-table" style="margin-top:12px">
+          <tr><td>Port</td><td>:8002</td></tr>
+          <tr><td>Version</td><td>4.18.2</td></tr>
+          <tr><td>DB-Pool</td><td>limit 10</td></tr>
+        </table>
+      </div>
+
+      <div class="card java">
+        <div class="icon">☕</div>
+        <span class="tag java">Java 21</span>
+        <h3>Spring Boot</h3>
+        <p>Enterprise-Framework auf der JVM mit Spring Data JPA.
+           Hoher Funktionsumfang, bekannt für größeren Arbeitsspeicherbedarf.</p>
+        <table class="metric-table" style="margin-top:12px">
+          <tr><td>Port</td><td>:8003</td></tr>
+          <tr><td>Version</td><td>3.2.4</td></tr>
+          <tr><td>DB-Pool</td><td>Hikari min 2 / max 10</td></tr>
+        </table>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── Datenbank-Workload ─────────────────── -->
+  <section>
+    <h2>Datenbank &amp; Datenbasis</h2>
+    <p>
+      Alle Dienste greifen auf dieselbe <strong>MariaDB 11</strong>-Datenbank zu.
+      Das Schema besteht aus zwei Tabellen:
+    </p>
+
+    <div class="card-grid" style="margin-bottom:24px">
+      <div class="card">
+        <h3>departments</h3>
+        <table class="metric-table">
+          <tr><th>Spalte</th><th>Typ</th><th>Beschreibung</th></tr>
+          <tr><td>id</td><td>INT PK</td><td>Auto-Increment</td></tr>
+          <tr><td>name</td><td>VARCHAR(100)</td><td>Abteilungsname</td></tr>
+        </table>
+        <p style="margin-top:10px;font-size:0.82rem">
+          10 Einträge: Engineering, Marketing, Sales, HR, Finance,
+          Operations, Legal, Product, Design, Support
+        </p>
+      </div>
+      <div class="card">
+        <h3>users</h3>
+        <table class="metric-table">
+          <tr><th>Spalte</th><th>Typ</th><th>Wertebereich</th></tr>
+          <tr><td>id</td><td>INT PK</td><td>Auto-Increment</td></tr>
+          <tr><td>name</td><td>VARCHAR(100)</td><td>User_1 … User_10000</td></tr>
+          <tr><td>age</td><td>INT</td><td>18 – 80</td></tr>
+          <tr><td>salary</td><td>DECIMAL(10,2)</td><td>30.000 – 120.000</td></tr>
+          <tr><td>department_id</td><td>INT FK</td><td>1 – 10 (zyklisch)</td></tr>
+        </table>
+        <p style="margin-top:10px;font-size:0.82rem">
+          10.000 Zeilen, per rekursivem CTE generiert
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Business Logic ─────────────────────── -->
+  <section>
+    <h2>Business-Logik: der <code>/get-age</code>-Endpoint</h2>
+    <p>
+      Jedes Framework exponiert exakt einen HTTP-GET-Endpunkt: <strong>/get-age</strong>.
+      Dieser führt bei jedem Aufruf dieselbe komplexe SQL-Abfrage aus und gibt das
+      Ergebnis als JSON zurück. Es gibt keinen Cache — jeder Request trifft die Datenbank.
+    </p>
+
+    <h3 style="margin-top:24px;margin-bottom:12px">Die SQL-Abfrage im Detail</h3>
+    <pre><code>SELECT
+    d.name                                                      AS department,
+    AVG(u.age)                                                  AS avg_age,
+    AVG(u.salary)                                               AS avg_salary,
+    COUNT(u.id)                                                 AS employee_count,
+    SUM(CASE WHEN u.salary > da.avg_sal THEN 1 ELSE 0 END)     AS above_avg_salary_count
+FROM users u
+JOIN departments d ON u.department_id = d.id
+JOIN (
+    SELECT department_id, AVG(salary) AS avg_sal   -- Subquery
+    FROM users
+    GROUP BY department_id
+) da ON u.department_id = da.department_id
+GROUP BY d.id, d.name
+ORDER BY avg_age DESC;</code></pre>
+
+    <h3 style="margin-top:28px;margin-bottom:16px">Was die Abfrage berechnet</h3>
+    <div class="card-grid">
+      <div class="card">
+        <h3>department</h3>
+        <p>Name der Abteilung aus dem JOIN mit der <code>departments</code>-Tabelle.</p>
+      </div>
+      <div class="card">
+        <h3>avg_age</h3>
+        <p>Durchschnittsalter aller Mitarbeiter in dieser Abteilung. Ergebnis wird
+           <strong>absteigend sortiert</strong> — älteste Abteilung steht oben.</p>
+      </div>
+      <div class="card">
+        <h3>avg_salary</h3>
+        <p>Durchschnittsgehalt aller Mitarbeiter der jeweiligen Abteilung.</p>
+      </div>
+      <div class="card">
+        <h3>employee_count</h3>
+        <p>Anzahl der Mitarbeiter pro Abteilung (immer 1.000, da zyklisch verteilt).</p>
+      </div>
+      <div class="card">
+        <h3>above_avg_salary_count</h3>
+        <p>Anzahl der Mitarbeiter, deren Gehalt <em>über dem Abteilungsdurchschnitt</em>
+           liegt — berechnet über einen korrelierten Subquery-JOIN.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:28px;margin-bottom:12px">Warum diese Abfrage anspruchsvoll ist</h3>
+    <p>
+      Die Datenbank muss bei jedem Request alle 10.000 User-Zeilen verarbeiten:
+    </p>
+    <div class="card" style="max-width:100%">
+      <table class="metric-table" style="width:100%">
+        <thead>
+          <tr>
+            <th>Operation</th>
+            <th>Beschreibung</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>JOIN departments</strong></td>
+            <td>Verbindet jeden User mit seinem Abteilungsnamen</td>
+          </tr>
+          <tr>
+            <td><strong>Subquery (Derived Table)</strong></td>
+            <td>Berechnet für <em>jede</em> Abteilung separat den Gehalts-Durchschnitt
+                — ein vollständiger zweiter Tabellenscan</td>
+          </tr>
+          <tr>
+            <td><strong>JOIN auf Subquery</strong></td>
+            <td>Verknüpft das Subquery-Ergebnis mit jedem User-Datensatz</td>
+          </tr>
+          <tr>
+            <td><strong>CASE WHEN + SUM</strong></td>
+            <td>Zählt zeilenweise, ob Gehalt &gt; Abteilungsdurchschnitt</td>
+          </tr>
+          <tr>
+            <td><strong>GROUP BY + ORDER BY</strong></td>
+            <td>Aggregiert 10.000 Zeilen auf 10 Abteilungen, sortiert absteigend</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:28px;margin-bottom:16px">Implementierung je Framework</h3>
+    <div class="card-grid">
+      <div class="card python">
+        <span class="tag python">FastAPI</span>
+        <p style="margin-top:8px">
+          Asynchroner Endpoint (<code>async def</code>) mit <code>aiomysql</code>-Connection-Pool.
+          Die Query wird non-blocking ausgeführt — der Event Loop blockiert nicht während
+          des Datenbankwartens.
+        </p>
+      </div>
+      <div class="card node">
+        <span class="tag node">Node.js</span>
+        <p style="margin-top:8px">
+          Async/await mit <code>mysql2/promise</code>-Pool.
+          <code>pool.execute()</code> gibt ein Promise zurück —
+          ebenfalls non-blocking durch den Node.js-Event-Loop.
+        </p>
+      </div>
+      <div class="card java">
+        <span class="tag java">Spring Boot</span>
+        <p style="margin-top:8px">
+          Native Query über ein Spring Data JPA <code>UserRepository</code>.
+          Synchroner Thread-pro-Request-Ansatz mit HikariCP-Connection-Pool.
+          Jeder Request belegt einen Thread bis zur DB-Antwort.
+        </p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:28px;margin-bottom:12px">JSON-Antwort (Beispiel)</h3>
+    <pre><code>{
+  "departments": [
+    {
+      "department":             "Finance",
+      "avg_age":                49.3,
+      "avg_salary":             74850.00,
+      "employee_count":         1000,
+      "above_avg_salary_count": 487
+    },
+    ...  // 9 weitere Abteilungen
+  ]
+}</code></pre>
+  </section>
+
+  <!-- ── Lastest ───────────────────────────── -->
+  <section>
+    <h2>Lasttest-Konfiguration (k6)</h2>
+    <div class="card-grid">
+      <div class="card">
+        <h3>Virtuelle Nutzer</h3>
+        <p style="font-size:2rem;font-weight:800;color:var(--accent2)">50 VUs</p>
+        <p>Pro Framework, gleichzeitig</p>
+      </div>
+      <div class="card">
+        <h3>Dauer</h3>
+        <p style="font-size:2rem;font-weight:800;color:var(--accent2)">30 s</p>
+        <p>Pro Testszenario</p>
+      </div>
+      <div class="card">
+        <h3>Szenarien</h3>
+        <p style="font-size:2rem;font-weight:800;color:var(--accent2)">3</p>
+        <p>FastAPI · Node.js · Spring Boot</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Architektur ────────────────────────── -->
+  <section>
+    <h2>Infrastruktur-Architektur</h2>
+
+    <div class="arch">
+      <div class="arch-col">
+        <h4>Load Generator</h4>
+        <div class="arch-item">k6 0.50 <small>HTTP-Lasttest</small></div>
+      </div>
+      <div class="arch-col">
+        <h4>Web Services</h4>
+        <div class="arch-item">FastAPI <small>:8001</small></div>
+        <div class="arch-item">Node.js <small>:8002</small></div>
+        <div class="arch-item">Spring Boot <small>:8003</small></div>
+      </div>
+      <div class="arch-col">
+        <h4>Datenbank</h4>
+        <div class="arch-item">MariaDB 11 <small>intern</small></div>
+      </div>
+      <div class="arch-col">
+        <h4>Metriken</h4>
+        <div class="arch-item">InfluxDB 1.8 <small>:8086</small></div>
+        <div class="arch-item">Telegraf 1.30 <small>Docker-Stats</small></div>
+      </div>
+      <div class="arch-col">
+        <h4>Monitoring</h4>
+        <div class="arch-item">Grafana 10.4 <small>:3000</small></div>
+      </div>
+    </div>
+
+    <br>
+    <div class="flow">
+      <div class="flow-box k6">k6</div>
+      <span class="arrow">→</span>
+      <div class="flow-box service">FastAPI / Node / Spring</div>
+      <span class="arrow">→</span>
+      <div class="flow-box db">MariaDB</div>
+      <span class="arrow" style="margin-left:16px">&#8627;</span>
+      <div class="flow-box influx">InfluxDB</div>
+      <span class="arrow">→</span>
+      <div class="flow-box grafana">Grafana</div>
+    </div>
+    <p style="margin-top:10px;font-size:0.8rem">
+      k6 schreibt HTTP-Metriken direkt nach InfluxDB. Telegraf sammelt Docker-Container-Stats
+      (CPU, RAM) und schreibt sie ebenfalls nach InfluxDB. Grafana visualisiert beide Datenquellen.
+    </p>
+  </section>
+
+  <!-- ── Grafana Dashboard ─────────────────── -->
+  <section>
+    <h2>Grafana Dashboard</h2>
+    <p>Das Dashboard zeigt zwei Haupt-Panels in Echtzeit (Refresh: 5 s):</p>
+    <div class="card-grid">
+      <div class="card">
+        <h3>Ranking – Antwortzeit</h3>
+        <p>Durchschnittliche HTTP-Request-Dauer in Millisekunden.</p>
+        <div>
+          <span class="pill green">&lt; 50 ms</span>
+          <span class="pill yellow">&lt; 200 ms</span>
+          <span class="pill red">&gt; 200 ms</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Ranking – RAM-Verbrauch</h3>
+        <p>Arbeitsspeicher je Container in Megabyte.</p>
+        <div>
+          <span class="pill green">&lt; 100 MB</span>
+          <span class="pill yellow">&lt; 500 MB</span>
+          <span class="pill red">&gt; 500 MB</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Ports ──────────────────────────────── -->
+  <section>
+    <h2>Dienst-Übersicht</h2>
+    <ul class="port-list">
+      <li><strong>:8001</strong> FastAPI</li>
+      <li><strong>:8002</strong> Node.js</li>
+      <li><strong>:8003</strong> Spring Boot</li>
+      <li><strong>:8086</strong> InfluxDB</li>
+      <li><strong>:3000</strong> Grafana</li>
+    </ul>
+  </section>
+
+  <!-- ── Schnellstart ───────────────────────── -->
+  <section>
+    <h2>Benchmark starten</h2>
+    <pre><code># Alle Dienste starten (im Projekt-Verzeichnis)
+docker compose up --build
+
+# Dienste stoppen
+docker compose down</code></pre>
+    <p>Nach dem Start werden die drei Web-Services hochgefahren, k6 beginnt automatisch
+       den Lasttest, sobald alle Dienste gesund sind. Grafana ist sofort unter Port 3000
+       erreichbar (Login: <code>admin / admin</code>).</p>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       GRAFANA CTA
+  ════════════════════════════════════════ -->
+  <div class="grafana-cta">
+    <h2>Live-Dashboard öffnen</h2>
+    <p>Grafana läuft lokal auf Port 3000. Öffne das vorbereitete Benchmark-Dashboard
+       direkt im Browser.</p>
+    <div class="btn-row">
+      <a class="btn btn-primary" href="http://localhost:3000/d/k6-benchmark" target="_blank">
+        📊 &nbsp;Benchmark-Dashboard öffnen
+      </a>
+      <a class="btn btn-secondary" href="http://localhost:3000" target="_blank">
+        🏠 &nbsp;Grafana Startseite
+      </a>
+    </div>
+    <p style="margin-top:20px;font-size:0.8rem">
+      Noch nicht gestartet? Führe zuerst <code>docker compose up --build</code> im Projektverzeichnis aus.
+    </p>
+  </div>
+
+</main>
+
+</body>
+</html>

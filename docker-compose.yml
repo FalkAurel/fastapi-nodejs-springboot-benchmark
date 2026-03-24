@@ -1,0 +1,134 @@
+services:
+  # ── Database ────────────────────────────────────────────────────────────────
+  mariadb:
+    image: mariadb:11
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: benchmark
+      MYSQL_USER: benchmark
+      MYSQL_PASSWORD: benchmark
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Web services ─────────────────────────────────────────────────────────────
+  fastapi:
+    build: ./fastapi
+    ports:
+      - "8001:8000"
+    environment:
+      DB_HOST: mariadb
+      DB_USER: benchmark
+      DB_PASSWORD: benchmark
+      DB_NAME: benchmark
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/get-age')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  nodejs:
+    build: ./node-js
+    ports:
+      - "8002:8000"
+    environment:
+      DB_HOST: mariadb
+      DB_USER: benchmark
+      DB_PASSWORD: benchmark
+      DB_NAME: benchmark
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8000/get-age', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  springboot:
+    build: ./spring-boot
+    ports:
+      - "8003:8000"
+    environment:
+      DB_HOST: mariadb
+      DB_USER: benchmark
+      DB_PASSWORD: benchmark
+      DB_NAME: benchmark
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -qO- http://localhost:8000/get-age || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
+
+  # ── Observability stack ──────────────────────────────────────────────────────
+  influxdb:
+    image: influxdb:1.8
+    environment:
+      INFLUXDB_DB: k6
+    ports:
+      - "8086:8086"
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - influxdb
+
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      CONTAINERS: 1
+      STATS: 1
+
+  telegraf:
+    image: telegraf:1.30-alpine
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    depends_on:
+      - influxdb
+      - socket-proxy
+
+  # ── k6 load generator ────────────────────────────────────────────────────────
+  k6:
+    image: grafana/k6:0.50.0
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        while true; do
+          k6 run --out influxdb=http://influxdb:8086/k6 /scripts/benchmark.js
+          sleep 5
+        done
+    volumes:
+      - ./k6:/scripts:ro
+    depends_on:
+      influxdb:
+        condition: service_started
+      fastapi:
+        condition: service_healthy
+      nodejs:
+        condition: service_healthy
+      springboot:
+        condition: service_healthy

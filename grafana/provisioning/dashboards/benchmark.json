@@ -1,0 +1,244 @@
+{
+  "title": "Performance Benchmark: FastAPI vs Node.js vs Spring Boot",
+  "uid": "k6-benchmark",
+  "schemaVersion": 38,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 10,
+      "title": "Ranking – Durchschnittliche Antwortzeit (niedriger = besser)",
+      "type": "bargauge",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 6 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb" },
+          "rawQuery": true,
+          "alias": "$tag_service",
+          "query": "SELECT mean(\"value\") AS \"Ø Antwortzeit\" FROM \"http_req_duration\" WHERE $timeFilter GROUP BY \"service\""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "red", "value": 200 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": { "reducers": ["mean"] }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": [{ "desc": false, "displayName": "Mean" }]
+          }
+        }
+      ],
+      "options": {
+        "reduceOptions": { "values": true, "calcs": ["lastNotNull"], "fields": "/^Mean$/" },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true
+      }
+    },
+    {
+      "id": 11,
+      "title": "Ranking – RAM-Verbrauch (niedriger = besser)",
+      "type": "bargauge",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 6 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb" },
+          "rawQuery": true,
+          "alias": "$tag_container_name",
+          "query": "SELECT mean(\"usage\") AS \"RAM\" FROM \"docker_container_mem\" WHERE $timeFilter AND (\"container_name\" =~ /fastapi/ OR \"container_name\" =~ /nodejs/ OR \"container_name\" =~ /springboot/) GROUP BY \"container_name\""
+        }
+      ],
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "benchmark-(fastapi|nodejs|springboot)-\\d+",
+            "renamePattern": "$1"
+          }
+        },
+        {
+          "id": "reduce",
+          "options": { "reducers": ["mean"] }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": [{ "desc": false, "displayName": "Mean" }]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 104857600 },
+              { "color": "red", "value": 524288000 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": {
+        "reduceOptions": { "values": true, "calcs": ["lastNotNull"], "fields": "/^Mean$/" },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true
+      }
+    },
+    {
+      "id": 1,
+      "title": "Requests pro Sekunde (nach Service)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 6, "w": 24, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb" },
+          "rawQuery": true,
+          "alias": "$tag_service",
+          "query": "SELECT non_negative_derivative(max(\"value\"), 1s) AS \"req/s\" FROM \"http_reqs\" WHERE $timeFilter GROUP BY time(1s), \"service\" fill(0)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      }
+    },
+    {
+      "id": 2,
+      "title": "HTTP Request Duration – p95 (ms)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 14, "w": 24, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb" },
+          "rawQuery": true,
+          "alias": "$tag_service",
+          "query": "SELECT percentile(\"value\", 95) AS \"p95\" FROM \"http_req_duration\" WHERE $timeFilter GROUP BY time(1s), \"service\" fill(null)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ms" }
+      }
+    },
+    {
+      "id": 3,
+      "title": "HTTP Request Duration – p50 / Median (ms)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 22, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb" },
+          "rawQuery": true,
+          "alias": "$tag_service",
+          "query": "SELECT median(\"value\") AS \"p50\" FROM \"http_req_duration\" WHERE $timeFilter GROUP BY time(1s), \"service\" fill(null)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ms" }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Fehlgeschlagene Requests",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 22, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb" },
+          "rawQuery": true,
+          "alias": "$tag_service",
+          "query": "SELECT non_negative_derivative(max(\"value\"), 1s) AS \"failed/s\" FROM \"http_req_failed\" WHERE $timeFilter GROUP BY time(1s), \"service\" fill(0)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short" }
+      }
+    },
+    {
+      "id": 12,
+      "title": "RAM-Verlauf pro Service (MB)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 30, "w": 24, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb" },
+          "rawQuery": true,
+          "alias": "$tag_container_name",
+          "query": "SELECT mean(\"usage\") / 1048576 AS \"RAM MB\" FROM \"docker_container_mem\" WHERE $timeFilter AND (\"container_name\" =~ /fastapi/ OR \"container_name\" =~ /nodejs/ OR \"container_name\" =~ /springboot/) GROUP BY time(3s), \"container_name\" fill(null)"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "benchmark-(fastapi|nodejs|springboot)-\\d+",
+            "renamePattern": "$1"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "decmbytes" }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Aktive VUs",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 38, "w": 12, "h": 7 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb" },
+          "rawQuery": true,
+          "alias": "$tag_service",
+          "query": "SELECT last(\"value\") AS \"vus\" FROM \"vus\" WHERE $timeFilter GROUP BY time(1s), \"service\" fill(0)"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Gesamte Requests pro Service",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 38, "w": 12, "h": 7 },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb" },
+          "rawQuery": true,
+          "alias": "$tag_service",
+          "query": "SELECT max(\"value\") AS \"total\" FROM \"http_reqs\" WHERE $timeFilter GROUP BY \"service\""
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "horizontal",
+        "colorMode": "background"
+      }
+    }
+  ]
+}
