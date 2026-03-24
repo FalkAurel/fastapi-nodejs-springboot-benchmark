@@ -232,8 +232,8 @@ Timeline (each scenario independent):
 
 ```bash
 # Clone the repository
-git clone https://github.com/<your-username>/framework-benchmark.git
-cd framework-benchmark
+git clone https://github.com/FalkAurel/fastapi-nodejs-springboot-benchmark.git
+cd fastapi-nodejs-springboot-benchmark
 
 # Build images and start all services
 docker compose up --build
